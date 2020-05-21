@@ -97,11 +97,16 @@ while read -r line; do
 done < /proc/kmsg
 ) &
 
+# run swtpm
+mkdir /tmp/mytpm1
+swtpm socket --tpmstate dir=/tmp/mytpm1 --ctrl type=unixio,path=/tmp/mytpm1/swtpm-sock --log level=20 &
+
 # $dm_args and $kernel are separated with \x1b to allow for spaces in arguments.
 IFS=$'\x1b'
 set -f
 qemu -sandbox on,obsolete=deny,elevateprivileges=deny,spawn=deny,resourcecontrol=deny \
--chardev pipe,path=/tmp/qmp/qemu,id=m -mon chardev=m,mode=control \
+-chardev pipe,path=/tmp/qmp/qemu,id=m -mon chardev=m,mode=control -chardev socket,id=chrtpm,path=/tmp/mytpm1/swtpm-sock \
+-tpmdev emulator,id=tpm0,chardev=chrtpm -device tpm-tis,tpmdev=tpm0 \
     $dm_args $kernel &
 set +f
 unset IFS

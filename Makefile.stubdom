@@ -108,7 +108,7 @@ build/qemu/config.status: build/qemu/.patched
 		--enable-seccomp \
 		--disable-coroutine-pool \
 		--disable-glusterfs \
-		--disable-tpm \
+		--enable-tpm \
 		--disable-libssh2 \
 		--disable-numa \
 		--disable-tcmalloc \
