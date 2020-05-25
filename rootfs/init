@@ -99,15 +99,21 @@ done < /proc/kmsg
 
 # run swtpm
 mkdir /tmp/mytpm1
+# create 1M image
+head -c 100000 /dev/zero > /tmp/test.img
 swtpm socket --tpmstate dir=/tmp/mytpm1 --ctrl type=unixio,path=/tmp/mytpm1/swtpm-sock --log level=20 &
+
+sleep 5
 
 # $dm_args and $kernel are separated with \x1b to allow for spaces in arguments.
 IFS=$'\x1b'
 set -f
-qemu -sandbox on,obsolete=deny,elevateprivileges=deny,spawn=deny,resourcecontrol=deny \
--chardev pipe,path=/tmp/qmp/qemu,id=m -mon chardev=m,mode=control -chardev socket,id=chrtpm,path=/tmp/mytpm1/swtpm-sock \
--tpmdev emulator,id=tpm0,chardev=chrtpm -device tpm-tis,tpmdev=tpm0 \
-    $dm_args $kernel &
+qemu -name tpm-vm -boot menu=on -bios /seabios-256k.bin \
+-chardev socket,id=chrtpm,path=/tmp/mytpm1/swtpm-sock \
+-tpmdev emulator,id=tpm0,chardev=chrtpm \
+-device tpm-tis,tpmdev=tpm0 \
+-device VGA,vgamem_mb=16 -display qubes-gui /tmp/test.img &
+    #$dm_args $kernel &
 set +f
 unset IFS
 
