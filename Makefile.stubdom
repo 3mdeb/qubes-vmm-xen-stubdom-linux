@@ -126,7 +126,7 @@ build/qemu/config.status: build/qemu/.patched
 		--disable-virglrenderer \
 		--disable-xfsctl \
 		--disable-blobs \
-		--disable-tcg \
+		--enable-tcg \
 		--disable-crypto-afalg \
 		--disable-live-block-migration \
 		--disable-vxhs \
