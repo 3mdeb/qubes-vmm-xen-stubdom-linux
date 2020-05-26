@@ -97,12 +97,29 @@ while read -r line; do
 done < /proc/kmsg
 ) &
 
+# run swtpm
+mkdir /tmp/mytpm1
+# create 1M image
+head -c 100000 /dev/zero > /tmp/test.img
+swtpm socket --tpmstate dir=/tmp/mytpm1 --ctrl type=unixio,path=/tmp/mytpm1/swtpm-sock --log level=5 &
+
+sleep 5
+
 # $dm_args and $kernel are separated with \x1b to allow for spaces in arguments.
 IFS=$'\x1b'
 set -f
-qemu -sandbox on,obsolete=deny,elevateprivileges=deny,spawn=deny,resourcecontrol=deny \
--chardev pipe,path=/tmp/qmp/qemu,id=m -mon chardev=m,mode=control \
-    $dm_args $kernel &
+qemu -xen-domid 154 -nodefaults -no-user-config -boot menu=on -bios /seabios-256k.bin -chardev \
+socket,id=chrtpm,path=/tmp/mytpm1/swtpm-sock -tpmdev \
+emulator,id=tpm0,chardev=chrtpm -device tpm-tis,tpmdev=tpm0 -device \
+mptsas1068,id=scsi0 -drive \
+file=/dev/xvda,if=none,id=disk0,format=host_device,cache=writeback,readonly=off \
+-device scsi-hd,bus=scsi0.0,drive=disk0,wwn=0x3525400051756265 -drive \
+file=/dev/xvdb,if=none,id=disk1,format=host_device,cache=writeback,readonly=off \
+-device scsi-hd,bus=scsi0.0,drive=disk1,wwn=0x3525400051756266 -drive \
+file=/dev/xvdc,if=none,id=disk2,format=host_device,cache=writeback,readonly=off \
+-device scsi-hd,bus=scsi0.0,drive=disk2,wwn=0x3525400051756267 -machine xenfv -m 3984 -name \
+tpm-vm -device VGA,vgamem_mb=16 -display qubes-gui \
+    $kernel &
 set +f
 unset IFS
 
